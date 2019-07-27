@@ -55,11 +55,14 @@ def home():
             f"Available Routes:<br/>"
             f"/api/v1.0/precipitation<br/>"
             f"/api/v1.0/stations<br/>"
-            f"/api/v1.0/tobs"       
+            f"/api/v1.0/tobs<br/>"
+            f"/api/v1.0/<start><br/>"
+            f"/api/v1.0/<start>/<end>"
     ) 
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
+    session = Session(engine)
     latest_date=session.query(Measurement.date).order_by(Measurement.date.desc()).first().date
     year_ago = dt.datetime.strptime(latest_date,'%Y-%m-%d') - dt.timedelta(days=365)
     date_prcp_measure=session.query(Measurement.date,Measurement.prcp).\
@@ -78,6 +81,7 @@ def precipitation():
 
 @app.route("/api/v1.0/stations")
 def stations():
+    session = Session(engine)
     station=session.query(Station.station).all()
     
     # Convert list of tuples into normal list
@@ -88,6 +92,7 @@ def stations():
 
 @app.route("/api/v1.0/tobs")
 def tobs():
+    session = Session(engine)
     latest_date=session.query(Measurement.date).order_by(Measurement.date.desc()).first().date
     year_ago = dt.datetime.strptime(latest_date,'%Y-%m-%d') - dt.timedelta(days=365)
     date_tobs=session.query(Measurement.date,Measurement.tobs).\
@@ -97,6 +102,25 @@ def tobs():
     tobs=list(np.ravel(date_tobs))
     return jsonify(tobs)
 
+@app.route("/api/v1.0/<start>")
+@app.route("/api/v1.0/<start>/<end>")    
+def temp(start=None,end=None):
+                
+    session = Session(engine)
+    if end!= None:
+        temp_start_end = session.query(func.min(Measurement.tobs),func.avg(Measurement.tobs),func.max(Measurement.tobs)).\
+                          filter(Measurement.date >= start).filter(Measurement.date <= end).all()
+
+
+#When given the start only, calculate TMIN, TAVG, and TMAX for all dates greater than and equal to the start date.
+    else:
+        temp_start_end = session.query(func.min(Measurement.tobs),func.avg(Measurement.tobs),func.max(Measurement.tobs)).\
+                         filter (Measurement.date >= start).all()
+   #convert list of tuple into normal list
+    temp_start_end_rav = list(np.ravel(temp_start_end))
+    return jsonify(temp_start_end_rav)
+           
+           
            
 if __name__ == "__main__":
     app.run(debug=True)
