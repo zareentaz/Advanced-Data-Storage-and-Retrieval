@@ -86,8 +86,7 @@ def stations():
     
     # Convert list of tuples into normal list
     all_stations = list(np.ravel(station))
-    
-    return jsonify(all_stations)
+    return jsonify(station)
 
 
 @app.route("/api/v1.0/tobs")
@@ -98,9 +97,16 @@ def tobs():
     date_tobs=session.query(Measurement.date,Measurement.tobs).\
               filter(Measurement.date >= year_ago).\
               order_by(Measurement.date).all()
+    
+    tobs_date = []
+    for date, tobs in date_tobs:
+        tobs_dict = {}
+        tobs_dict["date"] = date
+        tobs_dict["tobs"] = tobs
+        tobs_date.append(tobs_dict)
   
-    tobs=list(np.ravel(date_tobs))
-    return jsonify(tobs)
+    #tobs=list(np.ravel(date_tobs))
+    return jsonify(tobs_date)
 
 @app.route("/api/v1.0/<start>")
 @app.route("/api/v1.0/<start>/<end>")    
